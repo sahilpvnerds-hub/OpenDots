@@ -1,0 +1,7 @@
+{
+  "get-hooks": "node node_modules/@slack/cli-hooks/src/get-hooks.js",
+  "start": "node node_modules/@slack/cli-hooks/src/start.js",
+  "get-manifest": "node node_modules/@slack/cli-hooks/src/get-manifest.js",
+  "doctor": "node node_modules/@slack/cli-hooks/src/doctor.js",
+  "check-update": "node node_modules/@slack/cli-hooks/src/check-update.js"
+}
