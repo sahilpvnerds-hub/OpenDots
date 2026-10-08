@@ -138,7 +138,6 @@ export class Platform {
           step: 'settings',
           error_class: 'channel_start_failed',
         });
-        throw error;
       }
     }
   }
