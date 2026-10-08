@@ -46,15 +46,9 @@ export class Platform {
     this.pages = new PageService(workspace, () => {
       return (this.intelligence ?? createLocalIntelligence(workspace)) as any;
     });
-    const isCloudIntelligence =
-      config.intelligenceKey &&
-      config.intelligenceKey !== 'local' &&
-      !config.intelligenceKey.startsWith('ck_pub') &&
-      !config.intelligenceKey.startsWith('AQ.');
-
-    if (isCloudIntelligence) {
+    if (config.intelligenceKey) {
       this.intelligence = new CopilotKitIntelligence({
-        apiKey: config.intelligenceKey!,
+        apiKey: config.intelligenceKey,
         apiUrl: config.intelligenceApiUrl,
         wsUrl: config.intelligenceWsUrl,
         getLearningContainerId: learningSelector(
@@ -86,7 +80,7 @@ export class Platform {
       channels.push(slack);
     }
     const runtime = new CopilotRuntime({
-      ...(this.intelligence ? { intelligence: this.intelligence } : {}),
+      intelligence: (this.intelligence ?? createLocalIntelligence(workspace)) as any,
       telemetryId: this.setupTelemetry.identity,
       telemetryProperties: this.setupTelemetry.metadata,
       identifyUser: async () => ({
