@@ -103,7 +103,9 @@ export interface CallReceipt {
 }
 export interface SetupStatus {
   intelligence: boolean;
+  intelligenceKey?: string;
   model: boolean;
+  modelName?: string;
   browser: boolean;
   voice: boolean;
   slack: string;

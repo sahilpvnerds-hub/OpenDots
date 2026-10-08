@@ -26,7 +26,10 @@ const workspace = new WorkspaceStore(
   process.env.OWNER_ID ?? 'opendots-owner',
 );
 const config: PlatformConfig = {
-  intelligenceKey: process.env.INTELLIGENCE_API_KEY,
+  intelligenceKey:
+    process.env.INTELLIGENCE_API_KEY ||
+    process.env.CPK_INTELLIGENCE_API_KEY ||
+    undefined,
   intelligenceApiUrl: process.env.INTELLIGENCE_API_URL || undefined,
   intelligenceWsUrl: process.env.INTELLIGENCE_WS_URL || undefined,
   apiKey: process.env.OPENAI_API_KEY,

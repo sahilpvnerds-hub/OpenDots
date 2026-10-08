@@ -15,6 +15,7 @@ import { DotAgent } from './dot-agent.js';
 import { runThreadTurn } from './headless.js';
 import { setupStatus, type PlatformConfig } from './platform-config.js';
 import { validateRuntimeScope } from './runtime-scope.js';
+import { createLocalIntelligence } from './local-intelligence.js';
 import { learningSelector } from './learning.js';
 export class Platform {
   private channelStartupFailed = false;
@@ -33,19 +34,25 @@ export class Platform {
       () => store.settings().paused,
     );
     this.pages = new PageService(workspace, () => {
-      this.requireReady();
-      return this.intelligence!;
+      return (this.intelligence ?? createLocalIntelligence(workspace)) as any;
     });
-    if (!config.intelligenceKey) return;
-    this.intelligence = new CopilotKitIntelligence({
-      apiKey: config.intelligenceKey,
-      apiUrl: config.intelligenceApiUrl,
-      wsUrl: config.intelligenceWsUrl,
-      getLearningContainerId: learningSelector(
-        workspace,
-        config.slackDotId ?? workspace.dots()[0]?.id,
-      ),
-    });
+    const isCloudIntelligence =
+      config.intelligenceKey &&
+      config.intelligenceKey !== 'local' &&
+      !config.intelligenceKey.startsWith('ck_pub') &&
+      !config.intelligenceKey.startsWith('AQ.');
+
+    if (isCloudIntelligence) {
+      this.intelligence = new CopilotKitIntelligence({
+        apiKey: config.intelligenceKey!,
+        apiUrl: config.intelligenceApiUrl,
+        wsUrl: config.intelligenceWsUrl,
+        getLearningContainerId: learningSelector(
+          workspace,
+          config.slackDotId ?? workspace.dots()[0]?.id,
+        ),
+      });
+    }
     const channels = [];
     if (config.slackChannel && config.slackTeam && config.slackUsers.length) {
       const dotId = config.slackDotId ?? workspace.dots()[0].id;
@@ -61,7 +68,7 @@ export class Platform {
       channels.push(slack);
     }
     const runtime = new CopilotRuntime({
-      intelligence: this.intelligence,
+      ...(this.intelligence ? { intelligence: this.intelligence } : {}),
       identifyUser: async () => ({
         id: workspace.ownerId,
         name: 'OpenDots owner',
@@ -77,7 +84,7 @@ export class Platform {
         ),
       channels,
       generateThreadNames: true,
-    });
+    } as any);
     this.handler = createCopilotHonoHandler({
       runtime,
       basePath: '/api/copilotkit',
@@ -95,9 +102,7 @@ export class Platform {
   requireReady() {
     const missing = this.setup().missing;
     if (missing.length)
-      throw new Error(
-        `Setup required: ${missing.join(', ')}. Conversations require CopilotKit Intelligence.`,
-      );
+      throw new Error(`Setup required: ${missing.join(', ')}.`);
   }
   async start() {
     if (this.handler?.channels) {
@@ -117,36 +122,41 @@ export class Platform {
     this.requireReady();
     if (!this.workspace.dot(dotId)) throw new Error('Dot not found.');
     const id = randomUUID();
-    try {
-      await this.intelligence!.createThread({
-        threadId: id,
-        userId: this.workspace.ownerId,
-        agentId: dotId,
-        name: title,
-      });
-    } catch {
-      throw new Error(
-        'Intelligence could not create this conversation. Check the runtime key and connection.',
-      );
+    if (this.intelligence) {
+      try {
+        await this.intelligence.createThread({
+          threadId: id,
+          userId: this.workspace.ownerId,
+          agentId: dotId,
+          name: title,
+        });
+      } catch (error) {
+        console.warn('Intelligence cloud thread sync skipped:', error);
+      }
     }
     return this.workspace.bindThread(id, dotId, title);
   }
   async history(threadId: string): Promise<string> {
     this.requireReady();
     this.workspace.requireThread(threadId);
-    const history = await this.intelligence!.getThreadMessages({
-      threadId,
-      userId: this.workspace.ownerId,
-    });
-    return history.messages
-      .filter((message) => ['user', 'assistant'].includes(message.role))
-      .slice(-12)
-      .map(
-        (message) =>
-          `${message.role}: ${typeof message.content === 'string' ? message.content : ''}`,
-      )
-      .join('\n')
-      .slice(-12000);
+    if (!this.intelligence) return '';
+    try {
+      const history = await this.intelligence.getThreadMessages({
+        threadId,
+        userId: this.workspace.ownerId,
+      });
+      return history.messages
+        .filter((message) => ['user', 'assistant'].includes(message.role))
+        .slice(-12)
+        .map(
+          (message) =>
+            `${message.role}: ${typeof message.content === 'string' ? message.content : ''}`,
+        )
+        .join('\n')
+        .slice(-12000);
+    } catch {
+      return '';
+    }
   }
   async handle(request: Request): Promise<Response> {
     if (!this.handler)
@@ -154,6 +164,10 @@ export class Platform {
         { error: 'Setup required: INTELLIGENCE_API_KEY.' },
         { status: 503 },
       );
+    const url = new URL(request.url);
+    if (url.pathname.endsWith('/inspector-metadata')) {
+      return Response.json({});
+    }
     let body: unknown;
     if (request.method !== 'GET' && request.method !== 'HEAD')
       body = await request

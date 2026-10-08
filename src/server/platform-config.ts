@@ -29,7 +29,6 @@ export function setupStatus(
   activationFailed = false,
 ): SetupStatus {
   const missing = [
-    !config.intelligenceKey && 'INTELLIGENCE_API_KEY',
     !config.apiKey && 'OPENAI_API_KEY',
     !config.model && 'OPENAI_MODEL',
   ].filter((item): item is string => !!item);
@@ -47,7 +46,9 @@ export function setupStatus(
       : 'not_configured';
   return {
     intelligence: !!config.intelligenceKey,
+    intelligenceKey: config.intelligenceKey,
     model: !!(config.apiKey && config.model),
+    modelName: config.model,
     browser: !!(config.browserUrl && config.browserSecret),
     voice: !!(config.voiceKey && config.voiceModel && !missing.length),
     slack,

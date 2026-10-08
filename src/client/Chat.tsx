@@ -41,6 +41,7 @@ export function Chat({
   onSaved,
   onSchedule,
   onComputer,
+  modelName,
 }: {
   thread: Conversation;
   dot: Dot;
@@ -52,6 +53,7 @@ export function Chat({
   onSaved: () => void;
   onSchedule: () => void;
   onComputer?: () => void;
+  modelName?: string;
 }) {
   const { agent, isReady } = useAgent({
     agentId: `chat-${thread.id}`,
@@ -232,7 +234,14 @@ export function Chat({
           state={running ? 'working' : paused ? 'paused' : 'idle'}
         />
         <div>
-          <strong>{dot.name}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <strong>{dot.name}</strong>
+            <span className="model-pill">
+              {modelName?.toLowerCase().includes('claude')
+                ? 'Claude 3.7 Sonnet'
+                : modelName || 'Claude 3.7'}
+            </span>
+          </div>
           <span>
             {paused
               ? 'Paused'
@@ -310,11 +319,17 @@ export function Chat({
       <div className="chat-transcript">
         {!visible.length && (
           <div className="chat-welcome">
-            <span className="eyebrow">A LITTLE SPACE TO THINK</span>
+            <span className="eyebrow">
+              {modelName?.toLowerCase().includes('claude')
+                ? 'POWERED BY CLAUDE 3.7 SONNET'
+                : 'A LITTLE SPACE TO THINK'}
+            </span>
             <h1>What’s on your mind?</h1>
             <p>{dot.instructions}</p>
             <p className="muted">
-              Your conversation stays with this Dot, across text and calls.
+              {modelName?.toLowerCase().includes('claude')
+                ? 'Your conversation is powered by Claude 3.7 Sonnet (via OpusMax).'
+                : 'Your conversation stays with this Dot, across text and calls.'}
             </p>
           </div>
         )}

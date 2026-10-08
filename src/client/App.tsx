@@ -495,8 +495,8 @@ export function App() {
             </strong>
           </div>
           <div className="top-actions">
-            <span className="mode-badge">
-              {configured ? 'SELF-HOSTED' : 'SETUP REQUIRED'}
+            <span className="mode-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f5f3ff', color: '#6b21a8', borderColor: '#ddd6fe', fontWeight: 600 }}>
+              ⚡ {workspace.setup.modelName?.toLowerCase().includes('claude') ? 'CLAUDE 3.7' : (workspace.setup.modelName ?? (configured ? 'SELF-HOSTED' : 'SETUP REQUIRED'))}
             </span>
             <button
               className="pause-button"
@@ -572,6 +572,7 @@ export function App() {
                   key={thread.id}
                   thread={thread}
                   dot={dot}
+                  modelName={workspace.setup.modelName}
                   initialPrompt={pendingPrompt}
                   onConsumed={() => setPendingPrompt(undefined)}
                   voiceReady={workspace.setup.voice}
@@ -890,7 +891,10 @@ export function App() {
     </div>
   );
   return configured ? (
-    <CopilotKitProvider runtimeUrl="/api/copilotkit" headers={authHeaders()}>
+    <CopilotKitProvider
+      runtimeUrl="/api/copilotkit"
+      headers={authHeaders()}
+    >
       {content}
     </CopilotKitProvider>
   ) : (

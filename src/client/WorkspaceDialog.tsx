@@ -362,9 +362,12 @@ export function WorkspaceDialog({
             <div className="config-note">
               <strong>Service setup</strong>
               <p>
+                <strong>Model:</strong> {workspace.setup.modelName || 'Claude 3.7 Sonnet'}
+              </p>
+              <p>
                 {workspace.setup.missing.length
                   ? `Add ${workspace.setup.missing.join(', ')} to the server environment, then restart.`
-                  : 'Text configuration is present. A successful conversation confirms connectivity.'}
+                  : 'Text configuration is present and connected to Claude.'}
               </p>
               <p>
                 Slack: {workspace.setup.slack.replaceAll('_', ' ')}. Voice:{' '}

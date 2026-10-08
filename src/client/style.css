@@ -1603,6 +1603,17 @@ h3 {
     padding: 5px 6px;
     letter-spacing: 0.7px;
   }
+  .model-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 12px;
+    background: #f3f0ff;
+    color: #6b21a8;
+    border: 1px solid #e9d5ff;
+  }
   .avatar {
     width: 27px;
     height: 27px;
@@ -1989,6 +2000,18 @@ h3 {
 }
 .sidebar-error {
   color: #b59288;
+}
+.model-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #f3f0ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+  letter-spacing: 0.2px;
 }
 .chat-workspace {
   height: calc(100dvh - 83px);

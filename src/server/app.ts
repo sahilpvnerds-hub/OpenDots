@@ -46,11 +46,19 @@ export function createApp({
     ]);
     if (!ownerToken && !allowedHosts.has(requestUrl.hostname))
       return c.json({ error: 'Unrecognized host.' }, 403);
+    const isDev = process.env.NODE_ENV === 'development';
     const requestOrigin = c.req.header('origin');
     const expectedOrigin = origin ?? new URL(c.req.url).origin;
-    if (requestOrigin && requestOrigin !== expectedOrigin)
+    const isAllowedOrigin =
+      !requestOrigin ||
+      requestOrigin === expectedOrigin ||
+      (isDev &&
+        ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://[::1]:5173'].includes(
+          requestOrigin,
+        ));
+    if (!isAllowedOrigin)
       return c.json({ error: 'Cross-origin requests are not allowed.' }, 403);
-    if (c.req.header('sec-fetch-site') === 'cross-site')
+    if (!isDev && c.req.header('sec-fetch-site') === 'cross-site')
       return c.json({ error: 'Cross-site requests are not allowed.' }, 403);
     if (ownerToken) {
       const expected = Buffer.from(ownerToken);

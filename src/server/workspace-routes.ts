@@ -201,6 +201,7 @@ export function workspaceRoutes(platform: Platform, voice: VoiceService) {
   });
   app.all('/copilotkit/*', (c) => platform.handle(c.req.raw));
   app.onError((error, c) => {
+    console.error('API Route Error:', error);
     const text = error.message;
     const known =
       /^(Setup|Voice setup|Dot |Space |Specialist |Conversation |Call |This call|End the current|Voice provider|An audio|Intelligence could not)/.test(

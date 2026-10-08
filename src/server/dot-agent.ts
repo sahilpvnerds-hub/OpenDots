@@ -76,11 +76,10 @@ export class DotAgent extends AbstractAgent {
           dot.id,
         );
         if (
-          !this.config.intelligenceKey ||
           !this.config.apiKey ||
           !this.config.model
         )
-          throw new Error('Intelligence and model configuration are required.');
+          throw new Error('Model configuration (API key and model) is required.');
         const initialSettings = this.store.settings();
         const check = () => {
           const settings = this.store.settings();
@@ -330,6 +329,7 @@ export class DotAgent extends AbstractAgent {
                   : event,
               ),
             error: (error: unknown) => {
+              console.error('DotAgent execution error:', error);
               if (this.channel) {
                 subscriber.next(channelError());
                 subscriber.complete();
