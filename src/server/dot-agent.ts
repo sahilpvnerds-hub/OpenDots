@@ -272,6 +272,145 @@ export class DotAgent extends AbstractAgent {
             }),
           );
         }
+        const slackBotToken = process.env.INTELLIGENCE_CHANNEL_OPENDOTS_SLACK_BOT_TOKEN;
+        if (slackBotToken) {
+          tools.push(
+            defineTool({
+              name: 'send_slack_message',
+              description:
+                'Send a message to a specific Slack channel (e.g. #developer, #all-sahil-vnerds, #engginer).',
+              parameters: z.object({
+                channel: z
+                  .string()
+                  .describe(
+                    'Channel name (e.g. #developer) or channel ID (e.g. C0C67MNNHK4)',
+                  ),
+                text: z.string().describe('The message content to send'),
+              }),
+              execute: async ({ channel, text }) => {
+                check();
+                const cleanChannel = channel.startsWith('#')
+                  ? channel.slice(1)
+                  : channel;
+                let channelId = channel;
+                if (!channel.startsWith('C')) {
+                  const listRes = await fetch(
+                    'https://slack.com/api/conversations.list?types=public_channel,private_channel',
+                    {
+                      headers: { Authorization: `Bearer ${slackBotToken}` },
+                    },
+                  );
+                  const listData = (await listRes.json()) as any;
+                  if (listData.ok) {
+                    const match = listData.channels.find(
+                      (c: any) => c.name === cleanChannel,
+                    );
+                    if (match) channelId = match.id;
+                  }
+                }
+                const postRes = await fetch(
+                  'https://slack.com/api/chat.postMessage',
+                  {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${slackBotToken}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ channel: channelId, text }),
+                  },
+                );
+                const postData = (await postRes.json()) as any;
+                if (!postData.ok) {
+                  return { success: false, error: postData.error };
+                }
+                return {
+                  success: true,
+                  channel,
+                  timestamp: postData.ts,
+                };
+              },
+            }),
+            defineTool({
+              name: 'broadcast_slack_message',
+              description:
+                'Broadcast a message to all Slack channels in the workspace.',
+              parameters: z.object({
+                text: z
+                  .string()
+                  .describe('The message content to broadcast to all channels'),
+              }),
+              execute: async ({ text }) => {
+                check();
+                const listRes = await fetch(
+                  'https://slack.com/api/conversations.list?types=public_channel,private_channel',
+                  {
+                    headers: { Authorization: `Bearer ${slackBotToken}` },
+                  },
+                );
+                const listData = (await listRes.json()) as any;
+                if (!listData.ok)
+                  return { success: false, error: listData.error };
+                const results: Array<{
+                  channel: string;
+                  success: boolean;
+                  error?: string;
+                }> = [];
+                for (const ch of listData.channels) {
+                  await fetch('https://slack.com/api/conversations.join', {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${slackBotToken}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ channel: ch.id }),
+                  });
+                  const pRes = await fetch(
+                    'https://slack.com/api/chat.postMessage',
+                    {
+                      method: 'POST',
+                      headers: {
+                        Authorization: `Bearer ${slackBotToken}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ channel: ch.id, text }),
+                    },
+                  );
+                  const pData = (await pRes.json()) as any;
+                  results.push({
+                    channel: `#${ch.name}`,
+                    success: !!pData.ok,
+                    error: pData.error,
+                  });
+                }
+                return { success: true, results };
+              },
+            }),
+            defineTool({
+              name: 'list_slack_channels',
+              description:
+                'List all available channels in the Slack workspace.',
+              parameters: z.object({}),
+              execute: async () => {
+                check();
+                const listRes = await fetch(
+                  'https://slack.com/api/conversations.list?types=public_channel,private_channel',
+                  {
+                    headers: { Authorization: `Bearer ${slackBotToken}` },
+                  },
+                );
+                const listData = (await listRes.json()) as any;
+                if (!listData.ok)
+                  return { success: false, error: listData.error };
+                return {
+                  channels: listData.channels.map((c: any) => ({
+                    id: c.id,
+                    name: `#${c.name}`,
+                  })),
+                };
+              },
+            }),
+          );
+        }
         // Owner approval happens in the web app's chat, so channel turns and
         // headless runs cannot use approval-gated connection tools.
         const clientTools = this.channel
